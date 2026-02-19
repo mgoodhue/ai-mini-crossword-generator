@@ -7,18 +7,18 @@ from abc import ABC, abstractmethod
 
 class ClueProvider(ABC):
     @abstractmethod
-    def generate_clues(self, words, direction):
+    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
         raise NotImplementedError
 
 
 class OllamaClueProvider(ClueProvider):
-    def __init__(self, model="llama3.2"):
-        self.model = model
+    def __init__(self, model: str = "llama3.2") -> None:
+        self.model: str = model
 
-    def generate_clues(self, words, direction):
+    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
         host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         url = f"{host}/api/generate"
-        clues = []
+        clues: list[str] = []
 
         for word in words:
             prompt = (
@@ -62,10 +62,10 @@ class OllamaClueProvider(ClueProvider):
 
 
 class OpenAIClueProvider(ClueProvider):
-    def __init__(self, model="gpt-4.1-mini"):
-        self.model = model
+    def __init__(self, model: str = "gpt-4.1-mini") -> None:
+        self.model: str = model
 
-    def generate_clues(self, words, direction):
+    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             return None
@@ -76,7 +76,7 @@ class OpenAIClueProvider(ClueProvider):
             return None
 
         client = OpenAI(api_key=api_key)
-        clues = []
+        clues: list[str] = []
         for word in words:
             prompt = (
                 f"Create one concise crossword clue for the answer '{word}'. "
@@ -96,10 +96,10 @@ class OpenAIClueProvider(ClueProvider):
 
 
 class RuleBasedClueProvider(ClueProvider):
-    def generate_clues(self, words, direction):
+    def generate_clues(self, words: list[str], direction: str) -> list[str]:
         return [self._rule_based_clue(word, direction) for word in words]
 
-    def _rule_based_clue(self, word, direction):
+    def _rule_based_clue(self, word: str, direction: str) -> str:
         templates = [
             f"{len(word)}-letter {direction} entry.",
             f"Puzzle fill, {len(word)} letters.",
@@ -110,18 +110,18 @@ class RuleBasedClueProvider(ClueProvider):
 
 
 class ClueGenerator:
-    def __init__(self, provider="auto", model="llama3.2"):
-        self.provider = provider
-        self.model = model
-        self.providers = {
+    def __init__(self, provider: str = "auto", model: str = "llama3.2") -> None:
+        self.provider: str = provider
+        self.model: str = model
+        self.providers: dict[str, ClueProvider] = {
             "ollama": OllamaClueProvider(model=self.model),
             "openai": OpenAIClueProvider(model=self.model),
             "rule_based": RuleBasedClueProvider(),
         }
 
-    def generate_clues(self, words, direction):
+    def generate_clues(self, words: list[str], direction: str) -> list[str]:
         if self.provider == "auto":
-            order = ("ollama", "openai", "rule_based")
+            order: tuple[str, ...] = ("ollama", "openai", "rule_based")
         elif self.provider in self.providers:
             order = (self.provider,)
         else:
@@ -149,4 +149,7 @@ class ClueGenerator:
             raise RuntimeError(
                 "Rule-based clue generation failed unexpectedly."
             )
-        return self.providers["rule_based"].generate_clues(words, direction)
+        fallback = self.providers["rule_based"].generate_clues(words, direction)
+        if fallback is None:
+            raise RuntimeError("Rule-based clue generation failed unexpectedly.")
+        return fallback

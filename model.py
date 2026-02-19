@@ -1,7 +1,7 @@
 from crossword import CrosswordGenerator
 from crossword.clues import ClueGenerator
 
-def generate():
+def generate() -> None:
     generator = CrosswordGenerator(size=5, words_path="words.txt")
     result = generator.generate()
     if result is None:

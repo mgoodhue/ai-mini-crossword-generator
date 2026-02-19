@@ -1,0 +1,17 @@
+[tool.mypy]
+python_version = "3.11"
+files = ["crossword", "model.py", "tests"]
+
+strict = true
+pretty = true
+show_error_codes = true
+warn_unused_configs = true
+
+# Keep tests practical while still typed.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["openai", "openai.*"]
+ignore_missing_imports = true

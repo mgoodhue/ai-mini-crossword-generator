@@ -14,11 +14,11 @@ class GenerationResult:
 
 
 class CrosswordGenerator:
-    def __init__(self, size=5, words_path="words.txt"):
-        self.size = size
-        self.words_path = words_path
+    def __init__(self, size: int = 5, words_path: str = "words.txt") -> None:
+        self.size: int = size
+        self.words_path: str = words_path
 
-    def generate(self):
+    def generate(self) -> GenerationResult | None:
         repository = WordRepository.from_file(self.words_path, self.size)
         puzzle = Puzzle(CrosswordGrid(self.size))
         solver = CrosswordSolver(self.size, repository)
