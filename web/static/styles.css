@@ -1,0 +1,150 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #22c55e;
+  --error: #ef4444;
+  --cell: #f8fafc;
+  --cell-text: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Fira Sans", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #1e293b, #020617);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 32px;
+}
+
+.header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.controls {
+  margin: 24px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+input[type="number"] {
+  width: 80px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: var(--panel);
+  color: var(--text);
+}
+
+button {
+  background: var(--accent);
+  color: #052e16;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.06);
+}
+
+.status {
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--error);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.grid-wrap {
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--size), 1fr);
+  gap: 2px;
+  margin-top: 12px;
+}
+
+.cell {
+  background: var(--cell);
+  color: var(--cell-text);
+  height: 42px;
+  border: 2px solid transparent;
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 20px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.cell:focus {
+  border-color: #38bdf8;
+}
+
+.cell.correct {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
+
+.cell.incorrect {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.cell.block {
+  background: #0f172a;
+}
+
+.clues {
+  background: var(--panel);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.clues h2 {
+  margin: 0 0 8px;
+}
+
+.clues ol {
+  margin: 0 0 16px 20px;
+  color: var(--text);
+}
+
+@media (max-width: 800px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}

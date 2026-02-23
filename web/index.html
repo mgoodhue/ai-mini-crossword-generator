@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini Crossword Generator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1>Mini Crossword Generator</h1>
+        <p>Generate a small crossword and see the grid + clues.</p>
+      </header>
+
+      <section class="controls">
+        <label for="size">Grid size (3-9):</label>
+        <input id="size" type="number" min="3" max="9" value="5" />
+        <button id="generate">Generate</button>
+        <button id="check">Check</button>
+        <button id="clear">Clear</button>
+        <button id="reveal">Reveal</button>
+        <span id="status" class="status"></span>
+      </section>
+
+      <section class="content">
+        <div class="grid-wrap">
+          <h2>Grid</h2>
+          <div id="grid" class="grid"></div>
+        </div>
+
+        <div class="clues">
+          <h2>Across</h2>
+          <ol id="across"></ol>
+          <h2>Down</h2>
+          <ol id="down"></ol>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
