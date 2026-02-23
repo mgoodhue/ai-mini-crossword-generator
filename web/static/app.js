@@ -2,7 +2,9 @@ const gridEl = document.getElementById("grid");
 const acrossEl = document.getElementById("across");
 const downEl = document.getElementById("down");
 const sizeEl = document.getElementById("size");
+const difficultyEl = document.getElementById("difficulty");
 const statusEl = document.getElementById("status");
+const themeToggleBtn = document.getElementById("theme-toggle");
 const generateBtn = document.getElementById("generate");
 const checkBtn = document.getElementById("check");
 const clearBtn = document.getElementById("clear");
@@ -10,6 +12,31 @@ const revealBtn = document.getElementById("reveal");
 
 let solution = [];
 let revealed = false;
+
+function updateThemeButton(theme) {
+  themeToggleBtn.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("theme", theme);
+  updateThemeButton(theme);
+}
+
+function initializeTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") {
+    applyTheme(saved);
+    return;
+  }
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(prefersDark ? "dark" : "light");
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
 
 function setStatus(text, isError = false) {
   statusEl.textContent = text;
@@ -178,12 +205,17 @@ function revealGrid() {
 
 async function generate() {
   const size = Number(sizeEl.value);
+  const difficulty = difficultyEl.value;
   setStatus("Generating...");
   clearLists();
   gridEl.innerHTML = "";
 
   try {
-    const res = await fetch(`/api/generate?size=${size}`);
+    const params = new URLSearchParams({
+      size: String(size),
+      difficulty,
+    });
+    const res = await fetch(`/api/generate?${params.toString()}`);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.detail || "Failed to generate puzzle.");
@@ -194,7 +226,7 @@ async function generate() {
     renderGrid(data.size);
     renderClues(acrossEl, data.across);
     renderClues(downEl, data.down);
-    setStatus("Puzzle ready. Fill the grid, then press Check.");
+    setStatus(`Puzzle ready (${data.difficulty}). Fill the grid, then press Check.`);
     focusCell(0, 0);
   } catch (err) {
     setStatus(err.message, true);
@@ -205,4 +237,6 @@ generateBtn.addEventListener("click", generate);
 checkBtn.addEventListener("click", checkGrid);
 clearBtn.addEventListener("click", clearGrid);
 revealBtn.addEventListener("click", revealGrid);
+themeToggleBtn.addEventListener("click", toggleTheme);
+initializeTheme();
 generate();

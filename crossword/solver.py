@@ -49,11 +49,16 @@ class RandomSlotHeuristic(SlotHeuristic):
 
 class CrosswordSolver:
     def __init__(
-        self, size: int, repository: WordRepository, heuristic: str = "mrv"
+        self,
+        size: int,
+        repository: WordRepository,
+        heuristic: str = "mrv",
+        difficulty: str = "standard",
     ) -> None:
         self.size: int = size
         self.repository: WordRepository = repository
         self.heuristic: str = heuristic
+        self.difficulty: str = difficulty
         self.heuristics: dict[str, SlotHeuristic] = {
             "mrv": MinimumRemainingValuesHeuristic(),
             "random": RandomSlotHeuristic(),
@@ -78,9 +83,14 @@ class CrosswordSolver:
         if len(best_candidates) == 0:
             return False
 
-        random.shuffle(best_candidates)
+        ordered_candidates = self.repository.order_candidates(
+            best_candidates,
+            difficulty=self.difficulty,
+        )
+        if self.difficulty == "standard":
+            random.shuffle(ordered_candidates)
 
-        for word_idx in best_candidates:
+        for word_idx in ordered_candidates:
             word = self.repository.words[word_idx]
 
             if puzzle.is_word_used(word):

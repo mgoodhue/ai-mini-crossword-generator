@@ -8,7 +8,9 @@ from abc import ABC, abstractmethod
 
 class ClueProvider(ABC):
     @abstractmethod
-    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
+    def generate_clues(
+        self, words: list[str], direction: str, difficulty: str = "medium"
+    ) -> list[str] | None:
         raise NotImplementedError
 
 
@@ -23,7 +25,9 @@ class OllamaClueProvider(ClueProvider):
     def __init__(self, model: str = "llama3.2") -> None:
         self.model: str = model
 
-    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
+    def generate_clues(
+        self, words: list[str], direction: str, difficulty: str = "medium"
+    ) -> list[str] | None:
         host = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         url = f"{host}/api/generate"
         clues: list[str] = []
@@ -31,7 +35,7 @@ class OllamaClueProvider(ClueProvider):
         for word in words:
             prompt = (
                 f"Create one concise crossword clue for the answer '{word}'. "
-                f"Direction: {direction}. Difficulty: medium. "
+                f"Direction: {direction}. Difficulty: {difficulty}. "
                 "Rules: do not include the answer or close inflections, "
                 "max 10 words, return only clue text."
             )
@@ -73,7 +77,9 @@ class OpenAIClueProvider(ClueProvider):
     def __init__(self, model: str = "gpt-4.1-mini") -> None:
         self.model: str = model
 
-    def generate_clues(self, words: list[str], direction: str) -> list[str] | None:
+    def generate_clues(
+        self, words: list[str], direction: str, difficulty: str = "medium"
+    ) -> list[str] | None:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             return None
@@ -88,7 +94,7 @@ class OpenAIClueProvider(ClueProvider):
         for word in words:
             prompt = (
                 f"Create one concise crossword clue for the answer '{word}'. "
-                f"Direction: {direction}. Difficulty: medium. "
+                f"Direction: {direction}. Difficulty: {difficulty}. "
                 "Rules: do not include the answer or close inflections, "
                 "max 10 words, return only clue text."
             )
@@ -104,7 +110,9 @@ class OpenAIClueProvider(ClueProvider):
 
 
 class RuleBasedClueProvider(ClueProvider):
-    def generate_clues(self, words: list[str], direction: str) -> list[str]:
+    def generate_clues(
+        self, words: list[str], direction: str, difficulty: str = "medium"
+    ) -> list[str]:
         return [self._rule_based_clue(word, direction) for word in words]
 
     def _rule_based_clue(self, word: str, direction: str) -> str:
@@ -141,7 +149,7 @@ class ClueGenerator:
         }
 
     def generate_clues_with_provider(
-        self, words: list[str], direction: str
+        self, words: list[str], direction: str, difficulty: str = "medium"
     ) -> tuple[list[str], str]:
         if self.provider == "auto":
             order: tuple[str, ...] = ("ollama", "openai", "rule_based")
@@ -154,7 +162,9 @@ class ClueGenerator:
             )
 
         for name in order:
-            clues = self.providers[name].generate_clues(words, direction)
+            clues = self.providers[name].generate_clues(
+                words, direction, difficulty=difficulty
+            )
             if clues is not None:
                 return clues, name
 
@@ -170,11 +180,17 @@ class ClueGenerator:
             )
         if self.provider == "rule_based":
             raise RuntimeError("Rule-based clue generation failed unexpectedly.")
-        fallback = self.providers["rule_based"].generate_clues(words, direction)
+        fallback = self.providers["rule_based"].generate_clues(
+            words, direction, difficulty=difficulty
+        )
         if fallback is None:
             raise RuntimeError("Rule-based clue generation failed unexpectedly.")
         return fallback, "rule_based"
 
-    def generate_clues(self, words: list[str], direction: str) -> list[str]:
-        clues, _ = self.generate_clues_with_provider(words, direction)
+    def generate_clues(
+        self, words: list[str], direction: str, difficulty: str = "medium"
+    ) -> list[str]:
+        clues, _ = self.generate_clues_with_provider(
+            words, direction, difficulty=difficulty
+        )
         return clues

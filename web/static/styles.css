@@ -1,12 +1,45 @@
 :root {
-  --bg: #0f172a;
-  --panel: #111827;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #22c55e;
+  --bg: #ffffff;
+  --panel: #f5f5f5;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #111827;
+  --accent-text: #ffffff;
+  --error: #b91c1c;
+  --cell: #ffffff;
+  --cell-text: #111827;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --panel-border: #e5e7eb;
+  --grid-bg: #e5e7eb;
+  --cell-border: #e5e7eb;
+  --focus-border: #374151;
+  --correct-bg: #f3f4f6;
+  --correct-border: #4b5563;
+  --incorrect-bg: #fef2f2;
+  --block-cell: #111827;
+}
+
+html[data-theme="dark"] {
+  --bg: #000000;
+  --panel: #0a0a0a;
+  --text: #f5f5f5;
+  --muted: #b3b3b3;
+  --accent: #b91c1c;
+  --accent-text: #ffffff;
   --error: #ef4444;
-  --cell: #f8fafc;
-  --cell-text: #0f172a;
+  --cell: #111111;
+  --cell-text: #ffffff;
+  --input-bg: #111111;
+  --input-border: #2a2a2a;
+  --panel-border: #2a2a2a;
+  --grid-bg: #2a2a2a;
+  --cell-border: #2a2a2a;
+  --focus-border: #ef4444;
+  --correct-bg: #1a1a1a;
+  --correct-border: #f5f5f5;
+  --incorrect-bg: #2a0d0d;
+  --block-cell: #000000;
 }
 
 * {
@@ -16,7 +49,7 @@
 body {
   margin: 0;
   font-family: "Fira Sans", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1e293b, #020617);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
 }
@@ -49,14 +82,22 @@ input[type="number"] {
   width: 80px;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid #334155;
-  background: var(--panel);
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+}
+
+select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
   color: var(--text);
 }
 
 button {
   background: var(--accent);
-  color: #052e16;
+  color: var(--accent-text);
   border: none;
   padding: 8px 14px;
   border-radius: 6px;
@@ -86,6 +127,7 @@ button:hover {
   background: var(--panel);
   padding: 16px;
   border-radius: 12px;
+  border: 1px solid var(--panel-border);
 }
 
 .grid {
@@ -93,13 +135,16 @@ button:hover {
   grid-template-columns: repeat(var(--size), 1fr);
   gap: 2px;
   margin-top: 12px;
+  background: var(--grid-bg);
+  padding: 2px;
+  border-radius: 8px;
 }
 
 .cell {
   background: var(--cell);
   color: var(--cell-text);
   height: 42px;
-  border: 2px solid transparent;
+  border: 2px solid var(--cell-border);
   display: block;
   width: 100%;
   text-align: center;
@@ -111,27 +156,28 @@ button:hover {
 }
 
 .cell:focus {
-  border-color: #38bdf8;
+  border-color: var(--focus-border);
 }
 
 .cell.correct {
-  background: #dcfce7;
-  border-color: #16a34a;
+  background: var(--correct-bg);
+  border-color: var(--correct-border);
 }
 
 .cell.incorrect {
-  background: #fee2e2;
-  border-color: #dc2626;
+  background: var(--incorrect-bg);
+  border-color: var(--error);
 }
 
 .cell.block {
-  background: #0f172a;
+  background: var(--block-cell);
 }
 
 .clues {
   background: var(--panel);
   padding: 16px;
   border-radius: 12px;
+  border: 1px solid var(--panel-border);
 }
 
 .clues h2 {

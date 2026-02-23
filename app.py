@@ -25,9 +25,12 @@ def index() -> FileResponse:
 
 
 @app.get("/api/generate")
-def generate(size: int = Query(5, ge=3, le=9)) -> dict:
+def generate(
+    size: int = Query(5, ge=3, le=9),
+    difficulty: str = Query("easy", pattern="^(easy|standard|hard)$"),
+) -> dict:
     words_path = str(BASE_DIR / "words.txt")
-    generator = CrosswordGenerator(size=size, words_path=words_path)
+    generator = CrosswordGenerator(size=size, words_path=words_path, difficulty=difficulty)
     result = generator.generate()
     if result is None:
         raise HTTPException(
@@ -37,11 +40,17 @@ def generate(size: int = Query(5, ge=3, le=9)) -> dict:
 
     clue_provider = os.getenv("CLUE_PROVIDER", "auto")
     clue_generator = ClueGenerator(provider=clue_provider)
+    clue_difficulty = "medium"
+    if difficulty == "easy":
+        clue_difficulty = "easy"
+    elif difficulty == "hard":
+        clue_difficulty = "hard"
+
     across_clues, across_provider = clue_generator.generate_clues_with_provider(
-        result.across, "across"
+        result.across, "across", difficulty=clue_difficulty
     )
     down_clues, down_provider = clue_generator.generate_clues_with_provider(
-        result.down, "down"
+        result.down, "down", difficulty=clue_difficulty
     )
 
     if across_provider == "rule_based" or down_provider == "rule_based":
@@ -55,6 +64,7 @@ def generate(size: int = Query(5, ge=3, le=9)) -> dict:
 
     return {
         "size": size,
+        "difficulty": difficulty,
         "solution": result.grid_lines,
         "across": [
             {"number": i, "clue": clue, "length": len(word)}
