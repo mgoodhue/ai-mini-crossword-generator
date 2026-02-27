@@ -48,19 +48,71 @@ function clearLists() {
   downEl.innerHTML = "";
 }
 
+function isStartOfAcross(row, col, size) {
+  if (solution[row][col] === "#") {
+    return false;
+  }
+  if (col > 0 && solution[row][col - 1] !== "#") {
+    return false;
+  }
+  return col + 1 < size && solution[row][col + 1] !== "#";
+}
+
+function isStartOfDown(row, col, size) {
+  if (solution[row][col] === "#") {
+    return false;
+  }
+  if (row > 0 && solution[row - 1][col] !== "#") {
+    return false;
+  }
+  return row + 1 < size && solution[row + 1][col] !== "#";
+}
+
+function collectClueNumbers(size) {
+  const numbers = [];
+  let clueNumber = 1;
+  for (let row = 0; row < size; row += 1) {
+    for (let col = 0; col < size; col += 1) {
+      const startsAcross = isStartOfAcross(row, col, size);
+      const startsDown = isStartOfDown(row, col, size);
+      if (!startsAcross && !startsDown) {
+        continue;
+      }
+      numbers.push({ row, col, number: clueNumber });
+      clueNumber += 1;
+    }
+  }
+  return numbers;
+}
+
 function renderGrid(size) {
   gridEl.innerHTML = "";
   gridEl.style.setProperty("--size", String(size));
+  const clueNumberByCell = new Map(
+    collectClueNumbers(size).map((item) => [`${item.row},${item.col}`, item.number]),
+  );
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
-      const cell = document.createElement("input");
+      const isBlock = solution[row]?.[col] === "#";
+      const cell = document.createElement(isBlock ? "div" : "input");
+      cell.className = "cell";
+      cell.dataset.row = String(row);
+      cell.dataset.col = String(col);
+
+      if (isBlock) {
+        cell.classList.add("block");
+        cell.setAttribute("aria-label", "Blocked cell");
+        gridEl.appendChild(cell);
+        continue;
+      }
+
+      const slot = document.createElement("div");
+      slot.className = "cell-slot";
+
       cell.type = "text";
       cell.maxLength = 1;
       cell.autocomplete = "off";
       cell.spellcheck = false;
-      cell.className = "cell";
-      cell.dataset.row = String(row);
-      cell.dataset.col = String(col);
       cell.disabled = revealed;
 
       cell.addEventListener("input", (event) => {
@@ -92,7 +144,16 @@ function renderGrid(size) {
         }
       });
 
-      gridEl.appendChild(cell);
+      const clueNumber = clueNumberByCell.get(`${row},${col}`);
+      if (clueNumber !== undefined) {
+        const label = document.createElement("span");
+        label.className = "cell-number";
+        label.textContent = String(clueNumber);
+        slot.appendChild(label);
+      }
+
+      slot.appendChild(cell);
+      gridEl.appendChild(slot);
     }
   }
 }
@@ -101,6 +162,7 @@ function renderClues(target, clues) {
   target.innerHTML = "";
   for (const item of clues) {
     const li = document.createElement("li");
+    li.value = Number(item.number);
     li.textContent = item.clue;
     target.appendChild(li);
   }
@@ -118,6 +180,9 @@ function focusCell(row, col) {
   if (row < 0 || col < 0 || row >= size || col >= size) {
     return;
   }
+  if (solution[row][col] === "#") {
+    return;
+  }
   const target = getCell(row, col);
   if (target) {
     target.focus();
@@ -131,6 +196,9 @@ function allCells() {
 
 function clearGrid() {
   for (const cell of allCells()) {
+    if (cell.classList.contains("block")) {
+      continue;
+    }
     cell.value = "";
     cell.classList.remove("correct", "incorrect");
     cell.disabled = false;
@@ -148,9 +216,14 @@ function checkGrid() {
   let filled = 0;
   let correct = 0;
   const size = solution.length;
+  let total = 0;
 
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
+      if (solution[row][col] === "#") {
+        continue;
+      }
+      total += 1;
       const cell = getCell(row, col);
       if (!cell) {
         continue;
@@ -170,7 +243,6 @@ function checkGrid() {
     }
   }
 
-  const total = size * size;
   if (correct === total) {
     setStatus(`Solved! ${correct}/${total} correct.`);
     return;
@@ -189,8 +261,14 @@ function revealGrid() {
   const size = solution.length;
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
+      if (solution[row][col] === "#") {
+        continue;
+      }
       const cell = getCell(row, col);
       if (!cell) {
+        continue;
+      }
+      if (!(cell instanceof HTMLInputElement)) {
         continue;
       }
       cell.value = solution[row][col];
@@ -227,7 +305,15 @@ async function generate() {
     renderClues(acrossEl, data.across);
     renderClues(downEl, data.down);
     setStatus(`Puzzle ready (${data.difficulty}). Fill the grid, then press Check.`);
-    focusCell(0, 0);
+    outer:
+    for (let row = 0; row < data.size; row += 1) {
+      for (let col = 0; col < data.size; col += 1) {
+        if (solution[row][col] !== "#") {
+          focusCell(row, col);
+          break outer;
+        }
+      }
+    }
   } catch (err) {
     setStatus(err.message, true);
   }

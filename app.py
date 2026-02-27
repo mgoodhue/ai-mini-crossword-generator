@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from crossword import CrosswordGenerator
 from crossword.clues import ClueGenerator
+from crossword.numbering import build_clue_number_sequences
 
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
@@ -62,16 +63,23 @@ def generate(
             ),
         )
 
+    across_numbers, down_numbers = build_clue_number_sequences(result.grid_lines)
+    if len(across_numbers) != len(result.across) or len(down_numbers) != len(result.down):
+        raise HTTPException(
+            status_code=500,
+            detail="Internal clue numbering mismatch.",
+        )
+
     return {
         "size": size,
         "difficulty": difficulty,
         "solution": result.grid_lines,
         "across": [
-            {"number": i, "clue": clue, "length": len(word)}
-            for i, (word, clue) in enumerate(zip(result.across, across_clues), start=1)
+            {"number": number, "clue": clue, "length": len(word)}
+            for number, word, clue in zip(across_numbers, result.across, across_clues)
         ],
         "down": [
-            {"number": i, "clue": clue, "length": len(word)}
-            for i, (word, clue) in enumerate(zip(result.down, down_clues), start=1)
+            {"number": number, "clue": clue, "length": len(word)}
+            for number, word, clue in zip(down_numbers, result.down, down_clues)
         ],
     }

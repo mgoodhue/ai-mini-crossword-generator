@@ -2,59 +2,96 @@ from collections import defaultdict
 
 
 class WordRepository:
-    def __init__(self, size: int, words: list[str]) -> None:
-        self.size: int = size
-        self.words: list[str] = words
-        self.pos_index = self._build_pos_index(words)
-        self.word_scores: list[int] = [self._difficulty_score(word) for word in words]
+    def __init__(self, words: list[str], size: int | None = None) -> None:
+        self.size: int | None = size
+        normalized = sorted(
+            {
+                word.strip().lower()
+                for word in words
+                if word.strip().isalpha()
+                and (size is None or len(word.strip()) == size)
+            }
+        )
+        self.words: list[str] = normalized
+        self.words_by_length: dict[int, list[str]] = self._group_by_length(normalized)
+        self.pos_index_by_length: dict[int, list[defaultdict[str, set[int]]]] = {
+            length: self._build_pos_index(bucket, length)
+            for length, bucket in self.words_by_length.items()
+        }
+        self.word_scores: dict[str, int] = {
+            word: self._difficulty_score(word) for word in normalized
+        }
 
     @classmethod
-    def from_file(cls, path: str, size: int) -> "WordRepository":
+    def from_file(
+        cls,
+        path: str,
+        size: int | None = None,
+        min_len: int = 3,
+        max_len: int | None = None,
+    ) -> "WordRepository":
+        if size is not None:
+            min_len = size
+            max_len = size
         words: list[str] = []
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
                 w = line.strip().lower()
-                if len(w) == size and w.isalpha():
+                within_max = max_len is None or len(w) <= max_len
+                if len(w) >= min_len and within_max and w.isalpha():
                     words.append(w)
-        return cls(size=size, words=sorted(set(words)))
+        return cls(words=words)
 
-    def _build_pos_index(self, words: list[str]) -> list[defaultdict[str, set[int]]]:
+    def _group_by_length(self, words: list[str]) -> dict[int, list[str]]:
+        grouped: dict[int, list[str]] = defaultdict(list)
+        for word in words:
+            grouped[len(word)].append(word)
+        return dict(grouped)
+
+    def _build_pos_index(
+        self, words: list[str], length: int
+    ) -> list[defaultdict[str, set[int]]]:
         pos_index: list[defaultdict[str, set[int]]] = [
-            defaultdict(set) for _ in range(self.size)
+            defaultdict(set) for _ in range(length)
         ]
         for idx, w in enumerate(words):
             for i, ch in enumerate(w):
                 pos_index[i][ch].add(idx)
         return pos_index
 
-    def pattern_candidates(self, pattern: str) -> list[int]:
+    def pattern_candidates(self, pattern: str) -> list[str]:
+        bucket = self.words_by_length.get(len(pattern), [])
+        if not bucket:
+            return []
+
+        pos_index = self.pos_index_by_length[len(pattern)]
         candidates: set[int] | None = None
         for i, ch in enumerate(pattern):
             if ch == ".":
                 continue
-            matched: set[int] = self.pos_index[i].get(ch, set())
+            matched: set[int] = pos_index[i].get(ch, set())
             candidates = matched if candidates is None else (candidates & matched)
             if not candidates:
                 return []
         if candidates is None:
-            return list(range(len(self.words)))
-        return list(candidates)
+            return list(bucket)
+        return [bucket[i] for i in candidates]
 
     def order_candidates(
-        self, candidate_indices: list[int], difficulty: str = "standard"
-    ) -> list[int]:
+        self, candidate_words: list[str], difficulty: str = "standard"
+    ) -> list[str]:
         if difficulty == "easy":
             return sorted(
-                candidate_indices,
-                key=lambda i: (self.word_scores[i], self.words[i]),
+                candidate_words,
+                key=lambda word: (self.word_scores.get(word, 0), word),
             )
         if difficulty == "hard":
             return sorted(
-                candidate_indices,
-                key=lambda i: (self.word_scores[i], self.words[i]),
+                candidate_words,
+                key=lambda word: (self.word_scores.get(word, 0), word),
                 reverse=True,
             )
-        return list(candidate_indices)
+        return list(candidate_words)
 
     def _difficulty_score(self, word: str) -> int:
         score = 0

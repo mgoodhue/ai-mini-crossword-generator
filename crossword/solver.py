@@ -10,16 +10,16 @@ class SlotHeuristic(ABC):
     @abstractmethod
     def pick(
         self, slots: list[Slot], repository: WordRepository
-    ) -> tuple[Slot | None, list[int] | None]:
+    ) -> tuple[Slot | None, list[str] | None]:
         raise NotImplementedError
 
 
 class MinimumRemainingValuesHeuristic(SlotHeuristic):
     def pick(
         self, slots: list[Slot], repository: WordRepository
-    ) -> tuple[Slot | None, list[int] | None]:
+    ) -> tuple[Slot | None, list[str] | None]:
         best_slot: Slot | None = None
-        best_candidates: list[int] | None = None
+        best_candidates: list[str] | None = None
 
         for slot in slots:
             candidates = repository.pattern_candidates(slot.pattern)
@@ -39,7 +39,7 @@ class MinimumRemainingValuesHeuristic(SlotHeuristic):
 class RandomSlotHeuristic(SlotHeuristic):
     def pick(
         self, slots: list[Slot], repository: WordRepository
-    ) -> tuple[Slot | None, list[int] | None]:
+    ) -> tuple[Slot | None, list[str] | None]:
         if not slots:
             return None, None
 
@@ -65,10 +65,10 @@ class CrosswordSolver:
         }
 
     def solve(self, puzzle: Puzzle) -> bool:
-        if puzzle.is_complete(self.size):
+        if puzzle.is_complete():
             return True
 
-        slots = puzzle.available_slots(self.size)
+        slots = puzzle.available_slots()
 
         strategy = self.heuristics.get(self.heuristic)
         if strategy is None:
@@ -90,12 +90,7 @@ class CrosswordSolver:
         if self.difficulty == "standard":
             random.shuffle(ordered_candidates)
 
-        for word_idx in ordered_candidates:
-            word = self.repository.words[word_idx]
-
-            if puzzle.is_word_used(word):
-                continue
-
+        for word in ordered_candidates:
             changed = puzzle.place(best, word)
             if changed is None:
                 continue

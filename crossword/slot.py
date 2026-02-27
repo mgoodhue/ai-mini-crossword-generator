@@ -11,5 +11,6 @@ class SlotKind(str, Enum):
 class Slot:
     kind: SlotKind
     index: int
+    start: int
+    length: int
     pattern: str
-
