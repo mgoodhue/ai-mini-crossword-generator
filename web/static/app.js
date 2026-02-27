@@ -12,6 +12,13 @@ const revealBtn = document.getElementById("reveal");
 
 let solution = [];
 let revealed = false;
+let activeDirection = "across";
+let activeCell = null;
+let clueNumberByStartCell = new Map();
+const clueItemByDirection = {
+  across: new Map(),
+  down: new Map(),
+};
 
 function updateThemeButton(theme) {
   themeToggleBtn.textContent = theme === "dark" ? "Light mode" : "Dark mode";
@@ -85,10 +92,128 @@ function collectClueNumbers(size) {
   return numbers;
 }
 
+function cellSupportsDirection(row, col, direction, size = solution.length) {
+  if (!solution.length || row < 0 || col < 0 || row >= size || col >= size) {
+    return false;
+  }
+  if (solution[row][col] === "#") {
+    return false;
+  }
+  if (direction === "across") {
+    return (
+      (col > 0 && solution[row][col - 1] !== "#") || (col + 1 < size && solution[row][col + 1] !== "#")
+    );
+  }
+  return (
+    (row > 0 && solution[row - 1][col] !== "#") || (row + 1 < size && solution[row + 1][col] !== "#")
+  );
+}
+
+function chooseDirectionForCell(row, col, preferredDirection) {
+  const supportsAcross = cellSupportsDirection(row, col, "across");
+  const supportsDown = cellSupportsDirection(row, col, "down");
+  if (preferredDirection === "down") {
+    if (supportsDown) {
+      return "down";
+    }
+    if (supportsAcross) {
+      return "across";
+    }
+    return "down";
+  }
+  if (supportsAcross) {
+    return "across";
+  }
+  if (supportsDown) {
+    return "down";
+  }
+  return "across";
+}
+
+function getEntryStart(row, col, direction) {
+  if (direction === "across") {
+    let startCol = col;
+    while (startCol > 0 && solution[row][startCol - 1] !== "#") {
+      startCol -= 1;
+    }
+    return { row, col: startCol };
+  }
+  let startRow = row;
+  while (startRow > 0 && solution[startRow - 1][col] !== "#") {
+    startRow -= 1;
+  }
+  return { row: startRow, col };
+}
+
+function updateActiveHighlights() {
+  for (const cell of gridEl.querySelectorAll(".cell.active-word, .cell.active-cell")) {
+    cell.classList.remove("active-word", "active-cell");
+  }
+  for (const li of acrossEl.querySelectorAll(".active-clue")) {
+    li.classList.remove("active-clue");
+  }
+  for (const li of downEl.querySelectorAll(".active-clue")) {
+    li.classList.remove("active-clue");
+  }
+  acrossEl.classList.toggle("active-direction", activeDirection === "across");
+  downEl.classList.toggle("active-direction", activeDirection === "down");
+
+  if (!activeCell || !solution.length) {
+    return;
+  }
+
+  const { row, col } = activeCell;
+  const active = getCell(row, col);
+  if (active) {
+    active.classList.add("active-cell");
+  }
+
+  if (!cellSupportsDirection(row, col, activeDirection)) {
+    return;
+  }
+
+  const start = getEntryStart(row, col, activeDirection);
+  let cursorRow = start.row;
+  let cursorCol = start.col;
+  while (
+    cursorRow >= 0 &&
+    cursorCol >= 0 &&
+    cursorRow < solution.length &&
+    cursorCol < solution.length &&
+    solution[cursorRow][cursorCol] !== "#"
+  ) {
+    const cell = getCell(cursorRow, cursorCol);
+    if (cell) {
+      cell.classList.add("active-word");
+    }
+    if (activeDirection === "across") {
+      cursorCol += 1;
+    } else {
+      cursorRow += 1;
+    }
+  }
+
+  const clueNumber = clueNumberByStartCell.get(`${start.row},${start.col}`);
+  const clue = clueItemByDirection[activeDirection].get(clueNumber);
+  if (clue) {
+    clue.classList.add("active-clue");
+  }
+}
+
+function setActiveCell(row, col, preferredDirection = null) {
+  if (!solution.length) {
+    return;
+  }
+  activeCell = { row, col };
+  const preferred = preferredDirection || activeDirection || "across";
+  activeDirection = chooseDirectionForCell(row, col, preferred);
+  updateActiveHighlights();
+}
+
 function renderGrid(size) {
   gridEl.innerHTML = "";
   gridEl.style.setProperty("--size", String(size));
-  const clueNumberByCell = new Map(
+  clueNumberByStartCell = new Map(
     collectClueNumbers(size).map((item) => [`${item.row},${item.col}`, item.number]),
   );
   for (let row = 0; row < size; row += 1) {
@@ -121,30 +246,50 @@ function renderGrid(size) {
         input.value = value.slice(0, 1);
         input.classList.remove("correct", "incorrect");
         if (input.value) {
-          focusCell(row, col + 1);
+          if (activeDirection === "down") {
+            focusCell(row + 1, col, "down");
+          } else {
+            focusCell(row, col + 1, "across");
+          }
         }
       });
 
       cell.addEventListener("keydown", (event) => {
         if (event.key === "ArrowUp") {
           event.preventDefault();
-          focusCell(row - 1, col);
+          if (!focusCell(row - 1, col, "down")) {
+            setActiveCell(row, col, "down");
+          }
         } else if (event.key === "ArrowDown") {
           event.preventDefault();
-          focusCell(row + 1, col);
+          if (!focusCell(row + 1, col, "down")) {
+            setActiveCell(row, col, "down");
+          }
         } else if (event.key === "ArrowLeft") {
           event.preventDefault();
-          focusCell(row, col - 1);
+          if (!focusCell(row, col - 1, "across")) {
+            setActiveCell(row, col, "across");
+          }
         } else if (event.key === "ArrowRight") {
           event.preventDefault();
-          focusCell(row, col + 1);
+          if (!focusCell(row, col + 1, "across")) {
+            setActiveCell(row, col, "across");
+          }
         } else if (event.key === "Backspace" && !cell.value) {
           event.preventDefault();
-          focusCell(row, col - 1);
+          if (activeDirection === "down") {
+            focusCell(row - 1, col, "down");
+          } else {
+            focusCell(row, col - 1, "across");
+          }
         }
       });
 
-      const clueNumber = clueNumberByCell.get(`${row},${col}`);
+      cell.addEventListener("focus", () => {
+        setActiveCell(row, col);
+      });
+
+      const clueNumber = clueNumberByStartCell.get(`${row},${col}`);
       if (clueNumber !== undefined) {
         const label = document.createElement("span");
         label.className = "cell-number";
@@ -160,10 +305,13 @@ function renderGrid(size) {
 
 function renderClues(target, clues) {
   target.innerHTML = "";
+  const direction = target === acrossEl ? "across" : "down";
+  clueItemByDirection[direction].clear();
   for (const item of clues) {
     const li = document.createElement("li");
     li.value = Number(item.number);
     li.textContent = item.clue;
+    clueItemByDirection[direction].set(Number(item.number), li);
     target.appendChild(li);
   }
 }
@@ -172,22 +320,25 @@ function getCell(row, col) {
   return gridEl.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 }
 
-function focusCell(row, col) {
+function focusCell(row, col, preferredDirection = null) {
   if (!solution.length) {
-    return;
+    return false;
   }
   const size = solution.length;
   if (row < 0 || col < 0 || row >= size || col >= size) {
-    return;
+    return false;
   }
   if (solution[row][col] === "#") {
-    return;
+    return false;
   }
   const target = getCell(row, col);
   if (target) {
+    setActiveCell(row, col, preferredDirection);
     target.focus();
     target.select();
+    return true;
   }
+  return false;
 }
 
 function allCells() {
@@ -204,6 +355,9 @@ function clearGrid() {
     cell.disabled = false;
   }
   revealed = false;
+  activeDirection = "across";
+  activeCell = null;
+  updateActiveHighlights();
   setStatus("Grid cleared.");
   focusCell(0, 0);
 }
@@ -301,9 +455,12 @@ async function generate() {
     const data = await res.json();
     solution = data.solution;
     revealed = false;
+    activeDirection = "across";
+    activeCell = null;
     renderGrid(data.size);
     renderClues(acrossEl, data.across);
     renderClues(downEl, data.down);
+    updateActiveHighlights();
     setStatus(`Puzzle ready (${data.difficulty}). Fill the grid, then press Check.`);
     outer:
     for (let row = 0; row < data.size; row += 1) {

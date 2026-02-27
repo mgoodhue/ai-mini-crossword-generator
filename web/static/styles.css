@@ -181,6 +181,14 @@ button:hover {
   border-color: var(--focus-border);
 }
 
+.cell.active-word {
+  background: color-mix(in srgb, var(--accent) 14%, var(--cell));
+}
+
+.cell.active-cell {
+  border-color: var(--accent);
+}
+
 .cell.correct {
   background: var(--correct-bg);
   border-color: var(--correct-border);
@@ -242,6 +250,16 @@ button:hover {
 .clues ol {
   margin: 0 0 16px 20px;
   color: var(--text);
+}
+
+.clues ol.active-direction {
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+}
+
+.clues li.active-clue {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .dance-wrap {
